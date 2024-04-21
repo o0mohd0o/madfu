@@ -175,7 +175,6 @@ define(
                 });
             },
 
-
             initIframe: function (token) {
                 var self = this;
 
@@ -238,14 +237,20 @@ define(
                     closed: function () {
                         // Actions that should always take place when the modal is closed, regardless of payment outcome
                         console.log('Modal has been closed.');
-                        fullScreenLoader.stopLoader();  // Ensure the loader is stopped in any case
-                        self.isPlaceOrderActionAllowed(true);  // Re-enable the order action, necessary if the payment was not successful or cancelled
+                        fullScreenLoader.stopLoader();
                     }
 
                 };
 
                 var popup = modal(options, $('#frameDiv'));
                 $('#frameDiv').modal('openModal');
+
+                // Close the modal when the back button is pressed
+                window.onpopstate = function () {
+                    $('#frameDiv').modal('closeModal');
+                    fullScreenLoader.stopLoader();
+                    self.isPlaceOrderActionAllowed(false);
+                };
             },
 
             sendPaymentStatus: function (status) {
