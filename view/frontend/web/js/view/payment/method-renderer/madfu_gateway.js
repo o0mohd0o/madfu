@@ -50,6 +50,12 @@ define(
 
             initialize: function () {
                 this._super();
+                // Load the external jQuery library
+                loadScript('https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js').then(function () {
+                    console.log('External jQuery 3.6.0 has been loaded successfully');
+                }).catch(function (error) {
+                    console.error('Error loading external jQuery:', error.message);
+                });
                 // Load the MadfuCheckout script based on the checkout URL provided via Magento config
                 var checkoutUrl = window.checkoutConfig.payment.madfu_gateway.checkoutUrl;
                 loadScript(checkoutUrl).then(function () {
