@@ -23,6 +23,6 @@ class ConfigHelper extends AbstractHelper
             ScopeInterface::SCOPE_STORE
         );
 
-        return self::URLS[$environment] ?? '';
+        return self::URLS[$environment] ?? self::URLS['staging']; // Default to staging if no environment is set
     }
 }
