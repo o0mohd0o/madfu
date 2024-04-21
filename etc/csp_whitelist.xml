@@ -3,17 +3,21 @@
     <policies>
         <policy id="script-src">
             <values>
-                <value id="jquery" type="host">https://ajax.googleapis.com</value>
+                <value id="madfu-checkout-staging" type="host">checkout-staging.madfu.com.sa</value>
+                <value id="madfu-checkout" type="host">checkout.madfu.com.sa</value>
+                <value id="google-ajax-cdn" type="host">ajax.googleapis.com</value>
             </values>
         </policy>
-        <policy id="script-src">
+        <policy id="style-src">
             <values>
-                <value id="madfu" type="host">https://checkout-staging.madfu.com.sa</value>
+                <value id="madfu-checkout-staging-css" type="host">checkout-staging.madfu.com.sa</value>
+                <value id="madfu-checkout-css" type="host">checkout.madfu.com.sa</value>
             </values>
         </policy>
-        <policy id="script-src">
+        <policy id="img-src">
             <values>
-                <value id="madfu-prod" type="host">https://checkout.madfu.com.sa</value>
+                <value id="madfu-checkout-staging-img" type="host">checkout-staging.madfu.com.sa</value>
+                <value id="madfu-checkout-img" type="host">checkout.madfu.com.sa</value>
             </values>
         </policy>
     </policies>

@@ -8,7 +8,6 @@ use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Quote\Model\QuoteIdMaskFactory;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
-use Psr\Log\LoggerInterface;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
@@ -26,8 +25,7 @@ class PaymentResponseObserver implements ObserverInterface
         CheckoutSession $checkoutSession,
         OrderRepositoryInterface $orderRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
-        QuoteIdMaskFactory $quoteIdMaskFactory,
-        LoggerInterface $logger
+        QuoteIdMaskFactory $quoteIdMaskFactory
     ) {
         $this->messageManager = $messageManager;
         $this->checkoutSession = $checkoutSession;
@@ -41,33 +39,43 @@ class PaymentResponseObserver implements ObserverInterface
     public function execute(Observer $observer)
     {
         $paymentStatus = $this->checkoutSession->getData('paymentStatus');
-        $maskedQuoteId = $this->checkoutSession->getData('quoteId'); // Retrieve the masked quoteId from session
+        $quoteId = $this->checkoutSession->getData('quoteId'); // Retrieve the quoteId from session
 
-        if ($paymentStatus === 'success' && $maskedQuoteId) {
+        if ($paymentStatus === 'success' && $quoteId) {
             $this->checkoutSession->unsetData('paymentStatus'); // Clear the session after use
             $this->checkoutSession->unsetData('quoteId');
 
-            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($maskedQuoteId, 'masked_id');
-            $quoteId = $quoteIdMask->getQuoteId(); // Actual quote ID
+            $realQuoteId = $this->resolveQuoteId($quoteId);
 
-            if ($quoteId) {
-                $criteria = $this->searchCriteriaBuilder->addFilter('quote_id', $quoteId, 'eq')->create();
+            if ($realQuoteId) {
+                $criteria = $this->searchCriteriaBuilder->addFilter('quote_id', $realQuoteId, 'eq')->create();
                 $orders = $this->orderRepository->getList($criteria)->getItems();
 
                 if (count($orders) > 0) {
-                    $order = array_values($orders)[0]; // Assuming there's only one order with this quoteId
+                    $order = array_values($orders)[0];
                     $order->setStatus('paid');
                     $this->orderRepository->save($order);
                     $this->messageManager->addSuccessMessage(__('Payment successful and order placed.'));
                     $this->logger->info('Order status updated to Paid.');
                 } else {
-                    $this->logger->error('No order found with quote ID: ' . $quoteId);
+                    $this->logger->error('No order found with quote ID: ' . $realQuoteId);
                 }
             } else {
-                $this->logger->error('No valid quote ID found for masked ID: ' . $maskedQuoteId);
+                $this->logger->error('No valid quote ID found for ID: ' . $quoteId);
             }
         } else {
             $this->logger->info('No successful payment status found in session or missing quote ID.');
+        }
+    }
+
+    private function resolveQuoteId($quoteId)
+    {
+        try {
+            $quoteIdMask = $this->quoteIdMaskFactory->create()->load($quoteId, 'masked_id');
+            return $quoteIdMask->getQuoteId() ?? $quoteId;
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to resolve quote ID: ' . $e->getMessage());
+            return $quoteId; // Fallback to using the given ID if the masked lookup fails
         }
     }
 }

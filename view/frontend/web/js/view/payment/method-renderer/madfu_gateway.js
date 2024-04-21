@@ -3,20 +3,20 @@ define(
         'Magento_Checkout/js/view/payment/default',
         'jquery',
         'mage/url',
+        'mage/storage',
         'Magento_Checkout/js/model/quote',
         'Magento_Checkout/js/model/full-screen-loader',
         'Magento_Checkout/js/action/redirect-on-success',
         'Magento_Checkout/js/model/payment/additional-validators',
         'Magento_Ui/js/modal/modal',
         'Magento_Ui/js/model/messageList',
-        'Magento_Checkout/js/action/place-order',
-        'MadfuCheckout'
-
+        'Magento_Checkout/js/action/place-order'
     ],
     function (
         Component,
         $,
         urlBuilder,
+        storage,
         quote,
         fullScreenLoader,
         redirectOnSuccessAction,
@@ -27,10 +27,38 @@ define(
     ) {
         'use strict';
 
+        function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                var script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = url;
+                script.onload = function() {
+                    resolve(true);
+                };
+                script.onerror = function() {
+                    reject(new Error('Failed to load script ' + url));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
         return Component.extend({
             defaults: {
                 template: 'Madfu_MadfuPayment/payment/form',
                 transactionResult: ''
+            },
+
+            initialize: function () {
+                this._super();
+                // Load the MadfuCheckout script based on the checkout URL provided via Magento config
+                var checkoutUrl = window.checkoutConfig.payment.madfu_gateway.checkoutUrl;
+                loadScript(checkoutUrl).then(function () {
+                    console.log('MadfuCheckout script loaded successfully');
+                    console.log('Checkout URL:', checkoutUrl);
+                }).catch(function (error) {
+                    console.error('Error loading MadfuCheckout script:', error.message);
+                });
+                return this;
             },
 
             initObservable: function () {
@@ -79,10 +107,15 @@ define(
 
             createOrder: function () {
                 var customerData = window.customerData;
-
                 var billingAddress = quote.billingAddress();
                 var customerMobile = billingAddress.telephone;
                 var customerName = billingAddress.firstname + ' ' + billingAddress.lastname;
+                var locale = window.checkoutConfig.payment.madfu_gateway.locale;
+                var lang = 'en'; // Default to English
+                if (locale === 'ar_SA') {
+                    lang = 'ar'; // Set to Arabic for Saudi locale
+                }
+                console.log('Locale:', lang);
 
                 // Check if the user is logged in and use their data
                 if (customerData && customerData.isLoggedIn) {
@@ -107,7 +140,7 @@ define(
                     "GuestOrderData": {
                         "CustomerMobile": customerMobile,
                         "CustomerName": customerName,
-                        "Lang": "ar"
+                        "Lang": lang
                     },
                     "Order": {
                         "Taxes": quote.totals().tax_amount,

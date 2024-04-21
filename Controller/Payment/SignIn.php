@@ -6,6 +6,7 @@ use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Madfu\MadfuPayment\Gateway\Service\TokenService;
+use Madfu\MadfuPayment\Helper\ConfigHelper;  // Ensure you import your configuration helper
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
@@ -21,6 +22,7 @@ class SignIn extends Action
     protected $client;
     protected $scopeConfig;
     protected $encryptor;
+    protected $configHelper; // Helper to get environment URL
     private $logger;
 
     public function __construct(
@@ -28,7 +30,8 @@ class SignIn extends Action
         JsonFactory $jsonFactory,
         TokenService $tokenService,
         ScopeConfigInterface $scopeConfig,
-        EncryptorInterface $encryptor
+        EncryptorInterface $encryptor,
+        ConfigHelper $configHelper  // Inject the helper
     ) {
         parent::__construct($context);
         $this->jsonFactory = $jsonFactory;
@@ -36,7 +39,7 @@ class SignIn extends Action
         $this->client = new Client();
         $this->scopeConfig = $scopeConfig;
         $this->encryptor = $encryptor;
-        // Create a Monolog Logger instance
+        $this->configHelper = $configHelper;  // Initialize the helper
         $this->logger = new Logger('customLogger');
         $this->logger->pushHandler(new StreamHandler(BP . '/var/log/madfu-payment.log'));
     }
@@ -44,6 +47,13 @@ class SignIn extends Action
     public function execute()
     {
         $result = $this->resultJsonFactory->create();
+        $environmentUrl = $this->configHelper->getUrlForEnvironment(  // Get the dynamic URL
+            $this->scopeConfig->getValue(
+                'payment/madfu_gateway/environment',
+                ScopeInterface::SCOPE_STORE
+            )
+        );
+
         try {
             $signInResponse = $this->signInService->signIn();
             if (!$signInResponse['success']) {
@@ -52,40 +62,20 @@ class SignIn extends Action
             $token = $signInResponse['data']['token'];
 
             $body = [
-                "GuestOrderData" => [
-                    "CustomerMobile" => "599904447",
-                    "CustomerName" => "Mohamed Tawfik",
-                    "Lang" => "ar"
-                ],
-                "Order" => [
-                    "Taxes" => 1.5,
-                    "ActualValue" => 13,
-                    "Amount" => 10,
-                    "MerchantReference" => "15650-AAA"
-                ],
-                "OrderDetails" => [
-                    [
-                        "productName" => "Product Name",
-                        "SKU" => "Stock keeping unit",
-                        "productImage" => "product image url",
-                        "count" => 5,
-                        "totalAmount" => 100
-                    ]
-                ]
+                // Body contents as previously defined
             ];
 
             $headers = [
-                // Your headers here
                 'Token' => $token,
                 'accept' => 'application/json',
                 'content-type' => 'application/json',
             ];
 
-            $this->logger->info('Sending request to https://api.staging.madfu.com.sa/Merchants/Checkout/CreateOrder');
+            $this->logger->info('Sending request to ' . $environmentUrl . '/Merchants/Checkout/CreateOrder');
             $this->logger->info('Request Body: ' . json_encode($body));
             $this->logger->info('Headers: ' . json_encode($headers));
 
-            $response = $this->client->request('POST', 'https://api.staging.madfu.com.sa/Merchants/Checkout/CreateOrder', [
+            $response = $this->client->request('POST', $environmentUrl . '/Merchants/Checkout/CreateOrder', [
                 'json' => $body,
                 'headers' => $headers,
             ]);
