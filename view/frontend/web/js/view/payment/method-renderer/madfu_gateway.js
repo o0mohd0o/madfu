@@ -90,6 +90,19 @@ define(
                     customerName = customerData.firstname + ' ' + customerData.lastname || customerName;
                 }
 
+                // Validate Saudi mobile number
+                var saudiMobileRegex = /^0(5\d{8})$/;
+                var match = customerMobile.match(saudiMobileRegex);
+                if (match) {
+                    customerMobile = match[1]; // Remove the leading '0' if it's a valid Saudi number
+                } else {
+                    fullScreenLoader.stopLoader();
+                    messageList.addErrorMessage({
+                        message: 'Please enter a valid Saudi mobile number starting with 05 followed by 8 digits.'
+                    });
+                    return; // Stop execution if the phone number is invalid
+                }
+
                 var orderData = {
                     "GuestOrderData": {
                         "CustomerMobile": customerMobile,
