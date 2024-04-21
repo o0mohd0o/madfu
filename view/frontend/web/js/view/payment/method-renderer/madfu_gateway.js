@@ -146,7 +146,7 @@ define(
                         "Taxes": quote.totals().tax_amount,
                         "ActualValue": quote.totals().grand_total,
                         "Amount": quote.totals().grand_total,
-                        "MerchantReference": quote.getQuoteId() + '-' + Date.now(),
+                        "MerchantReference": quote.getQuoteId() + '-mage' ,
                     },
                     "OrderDetails": quote.getItems().map(function (item) {
                         return {
