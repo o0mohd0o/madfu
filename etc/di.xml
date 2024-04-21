@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Payment Method Facade configuration -->
+    <virtualType name="MadfuPaymentGatewayFacade" type="Magento\Payment\Model\Method\Adapter">
+        <arguments>
+            <argument name="code" xsi:type="const">\Madfu\MadfuPayment\Model\Ui\ConfigProvider::CODE</argument>
+            <argument name="formBlockType" xsi:type="string">Magento\Payment\Block\Form</argument>
+            <argument name="infoBlockType" xsi:type="string">Magento\Payment\Block\Info</argument> <!-- Default info block -->
+            <argument name="valueHandlerPool" xsi:type="object">MadfuPaymentGatewayValueHandlerPool</argument>
+            <argument name="commandPool" xsi:type="object">MadfuPaymentGatewayCommandPool</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Configuration reader -->
+    <virtualType name="MadfuPaymentGatewayConfig" type="Magento\Payment\Gateway\Config\Config">
+        <arguments>
+            <argument name="methodCode" xsi:type="const">\Madfu\MadfuPayment\Model\Ui\ConfigProvider::CODE</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Logger, initialized with MadfuPaymentGatewayConfig -->
+    <virtualType name="MadfuPaymentGatewayLogger" type="Magento\Payment\Model\Method\Logger">
+        <arguments>
+            <argument name="config" xsi:type="object">MadfuPaymentGatewayConfig</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Madfu\MadfuPayment\Gateway\Http\Client\ClientMock">
+        <arguments>
+            <argument name="logger" xsi:type="object">MadfuPaymentGatewayLogger</argument>
+        </arguments>
+    </type>
+
+    <!-- Commands infrastructure -->
+    <virtualType name="MadfuPaymentGatewayCommandPool" type="Magento\Payment\Gateway\Command\CommandPool">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="authorize" xsi:type="string">MadfuPaymentGatewayAuthorizeCommand</item>
+                <item name="capture" xsi:type="string">MadfuPaymentGatewayCaptureCommand</item>
+                <item name="void" xsi:type="string">MadfuPaymentGatewayVoidCommand</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Authorize command -->
+    <virtualType name="MadfuPaymentGatewayAuthorizeCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">MadfuPaymentGatewayAuthorizationRequest</argument>
+            <argument name="handler" xsi:type="object">MadfuPaymentGatewayResponseHandlerComposite</argument>
+            <argument name="transferFactory" xsi:type="object">Madfu\MadfuPayment\Gateway\Http\TransferFactory</argument>
+            <argument name="client" xsi:type="object">Madfu\MadfuPayment\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Authorization Request -->
+    <virtualType name="MadfuPaymentGatewayAuthorizationRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+        <arguments>
+            <argument name="builders" xsi:type="array">
+                <item name="transaction" xsi:type="string">Madfu\MadfuPayment\Gateway\Request\AuthorizationRequest</item>
+                <item name="mockData" xsi:type="string">Madfu\MadfuPayment\Gateway\Request\MockDataRequest</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="Madfu\MadfuPayment\Gateway\Request\AuthorizationRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">MadfuPaymentGatewayConfig</argument>
+        </arguments>
+    </type>
+
+    <!-- Capture command -->
+    <virtualType name="MadfuPaymentGatewayCaptureCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">Madfu\MadfuPayment\Gateway\Request\CaptureRequest</argument>
+            <argument name="handler" xsi:type="object">Madfu\MadfuPayment\Gateway\Response\TxnIdHandler</argument>
+            <argument name="transferFactory" xsi:type="object">Madfu\MadfuPayment\Gateway\Http\TransferFactory</argument>
+            <argument name="validator" xsi:type="object">Madfu\MadfuPayment\Gateway\Validator\ResponseCodeValidator</argument>
+            <argument name="client" xsi:type="object">Madfu\MadfuPayment\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Capture Request -->
+    <type name="Madfu\MadfuPayment\Gateway\Request\CaptureRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">MadfuPaymentGatewayConfig</argument>
+        </arguments>
+    </type>
+
+    <!-- Void command -->
+    <virtualType name="MadfuPaymentGatewayVoidCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">Madfu\MadfuPayment\Gateway\Request\VoidRequest</argument>
+            <argument name="handler" xsi:type="object">Madfu\MadfuPayment\Gateway\Response\TxnIdHandler</argument>
+            <argument name="transferFactory" xsi:type="object">Madfu\MadfuPayment\Gateway\Http\TransferFactory</argument>
+            <argument name="validator" xsi:type="object">Madfu\MadfuPayment\Gateway\Validator\ResponseCodeValidator</argument>
+            <argument name="client" xsi:type="object">Madfu\MadfuPayment\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Void Request -->
+    <type name="Madfu\MadfuPayment\Gateway\Request\VoidRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">MadfuPaymentGatewayConfig</argument>
+        </arguments>
+    </type>
+
+    <!-- Response handlers -->
+    <virtualType name="MadfuPaymentGatewayResponseHandlerComposite" type="Magento\Payment\Gateway\Response\HandlerChain">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="txnid" xsi:type="string">Madfu\MadfuPayment\Gateway\Response\TxnIdHandler</item>
+                <item name="fraud" xsi:type="string">Madfu\MadfuPayment\Gateway\Response\FraudHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Value handlers infrastructure -->
+    <virtualType name="MadfuPaymentGatewayValueHandlerPool" type="Magento\Payment\Gateway\Config\ValueHandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="default" xsi:type="string">MadfuPaymentGatewayConfigValueHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="MadfuPaymentGatewayConfigValueHandler" type="Magento\Payment\Gateway\Config\ConfigValueHandler">
+        <arguments>
+            <argument name="configInterface" xsi:type="object">MadfuPaymentGatewayConfig</argument>
+        </arguments>
+    </virtualType>
+
+</config>
