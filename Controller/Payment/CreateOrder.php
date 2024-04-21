@@ -12,6 +12,7 @@ use GuzzleHttp\Client;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Framework\Message\ManagerInterface as MessageManager;
 
 class CreateOrder extends \Magento\Framework\App\Action\Action
 {
@@ -29,7 +30,8 @@ class CreateOrder extends \Magento\Framework\App\Action\Action
         ScopeConfigInterface $scopeConfig,
         EncryptorInterface $encryptor,
         SignInService $signInService,
-        CheckoutSession $checkoutSession
+        CheckoutSession $checkoutSession,
+        MessageManager $messageManager
     ) {
         parent::__construct($context);
         $this->resultJsonFactory = $resultJsonFactory;
@@ -38,6 +40,7 @@ class CreateOrder extends \Magento\Framework\App\Action\Action
         $this->scopeConfig = $scopeConfig;
         $this->encryptor = $encryptor;
         $this->checkoutSession = $checkoutSession;
+        $this->messageManager = $messageManager;
         // Create a Monolog Logger instance
         $this->logger = new Logger('customLogger');
         $this->logger->pushHandler(new StreamHandler(BP . '/var/log/madfu-payment.log'));
@@ -92,6 +95,8 @@ class CreateOrder extends \Magento\Framework\App\Action\Action
             $result->setData(['success' => true, 'data' => $responseData]);
         } catch (\Exception $e) {
             $this->logger->error('Error occurred: ' . $e->getMessage());
+            // Add an error message to be displayed to the user
+            $this->messageManager->addErrorMessage(__('Error occurred while creating the order: %1', $e->getMessage()));
             $result->setData(['success' => false, 'message' => $e->getMessage()]);
         }
         return $result;
