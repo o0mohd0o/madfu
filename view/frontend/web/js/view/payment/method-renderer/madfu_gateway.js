@@ -8,8 +8,10 @@ define(
         'Magento_Checkout/js/action/redirect-on-success',
         'Magento_Checkout/js/model/payment/additional-validators',
         'Magento_Ui/js/modal/modal',
+        'Magento_Ui/js/model/messageList',
         'Magento_Checkout/js/action/place-order',
         'MadfuCheckout'
+
     ],
     function (
         Component,
@@ -20,6 +22,7 @@ define(
         redirectOnSuccessAction,
         additionalValidators,
         modal,
+        messageList,
         placeOrderAction
     ) {
         'use strict';
@@ -124,21 +127,29 @@ define(
                     completeCallback: function (data) {
                         console.log('Payment Success');
                         fullScreenLoader.stopLoader();
-                        $('#frameDiv').modal('closeModal');
                         self.sendPaymentStatus('success');
+                        // Close the modal and trigger order placement
+                        $('#frameDiv').modal('closeModal');
+                        placeOrderAction(self.getData(), self.redirectAfterPlaceOrder).done(function () {
+                            redirectOnSuccessAction.execute();
+                        }).fail(function () {
+                            console.error('Order placement failed');
+                        });
                     },
                     errorCallback: function (data) {
                         console.error('Payment Failed');
                         fullScreenLoader.stopLoader();
                         self.isPlaceOrderActionAllowed(true);
-                        self.sendPaymentStatus('error');
+                        $('#frameDiv').modal('closeModal');
+                        messageList.addErrorMessage({ message: 'Payment failed. Please try again.' });
                     },
                     cancelCallback: function () {
                         console.log('Payment Cancelled');
                         fullScreenLoader.stopLoader();
                         self.isPlaceOrderActionAllowed(true);
-                        self.sendPaymentStatus('cancel');
-                    }
+                        $('#frameDiv').modal('closeModal');
+                        messageList.addErrorMessage({ message: 'Payment was cancelled.' });
+                    },
                 };
 
 
@@ -155,19 +166,18 @@ define(
                     title: '',
                     buttons: [],
                     modalClass: 'no-header-footer',
+                    clickableOverlay: false,
                     opened: function () {
                         // Hide the loading mask when the modal is opened
                         $('.loading-mask').hide();
                     },
                     closed: function () {
-                        // Place the order in Magento when the modal is closed
-                        placeOrderAction(self.getData(), self.redirectAfterPlaceOrder).done(function () {
-                            redirectOnSuccessAction.execute();
-                        }).fail(function () {
-                            // Handle order placement failure
-                            console.error('Order placement failed');
-                        });
+                        // Actions that should always take place when the modal is closed, regardless of payment outcome
+                        console.log('Modal has been closed.');
+                        fullScreenLoader.stopLoader();  // Ensure the loader is stopped in any case
+                        self.isPlaceOrderActionAllowed(true);  // Re-enable the order action, necessary if the payment was not successful or cancelled
                     }
+
                 };
 
                 var popup = modal(options, $('#frameDiv'));
