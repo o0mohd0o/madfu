@@ -40,12 +40,10 @@ class PaymentResponseObserver implements ObserverInterface
 
     public function execute(Observer $observer)
     {
-        $this->logger->info('Observer executed: checking session for payment status.');
-
         $paymentStatus = $this->checkoutSession->getData('paymentStatus');
         $maskedQuoteId = $this->checkoutSession->getData('quoteId'); // Retrieve the masked quoteId from session
 
-        if ($paymentStatus && $maskedQuoteId) {
+        if ($paymentStatus === 'success' && $maskedQuoteId) {
             $this->checkoutSession->unsetData('paymentStatus'); // Clear the session after use
             $this->checkoutSession->unsetData('quoteId');
 
@@ -58,24 +56,10 @@ class PaymentResponseObserver implements ObserverInterface
 
                 if (count($orders) > 0) {
                     $order = array_values($orders)[0]; // Assuming there's only one order with this quoteId
-                    switch ($paymentStatus) {
-                        case 'success':
-                            $order->setStatus('paid');
-                            $this->messageManager->addSuccessMessage(__('Payment successful and order placed.'));
-                            $this->logger->info('Success message added and order status updated to Paid.');
-                            break;
-                        case 'error':
-                            $order->setStatus('payment_failed');
-                            $this->messageManager->addErrorMessage(__('Payment failed, please try again.'));
-                            $this->logger->info('Error message added and order status updated to Payment Failed.');
-                            break;
-                        case 'cancel':
-                            $order->setStatus('payment_canceled');
-                            $this->messageManager->addNoticeMessage(__('Payment cancelled by user.'));
-                            $this->logger->info('Cancellation message added and order status updated to Payment Canceled.');
-                            break;
-                    }
+                    $order->setStatus('paid');
                     $this->orderRepository->save($order);
+                    $this->messageManager->addSuccessMessage(__('Payment successful and order placed.'));
+                    $this->logger->info('Order status updated to Paid.');
                 } else {
                     $this->logger->error('No order found with quote ID: ' . $quoteId);
                 }
@@ -83,7 +67,7 @@ class PaymentResponseObserver implements ObserverInterface
                 $this->logger->error('No valid quote ID found for masked ID: ' . $maskedQuoteId);
             }
         } else {
-            $this->logger->info('No payment status or quote ID found in session.');
+            $this->logger->info('No successful payment status found in session or missing quote ID.');
         }
     }
 }

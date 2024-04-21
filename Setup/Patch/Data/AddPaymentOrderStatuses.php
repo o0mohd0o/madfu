@@ -27,24 +27,14 @@ class AddPaymentOrderStatuses implements DataPatchInterface
     {
         $this->moduleDataSetup->startSetup();
 
-        // Statuses and state to assign
-        $statuses = [
-            'paid' => 'Paid',
-            'payment_failed' => 'Payment Failed',
-            'payment_canceled' => 'Payment Canceled'
-        ];
+        $status = $this->statusFactory->create();
+        $status->setData([
+            'status' => 'paid',
+            'label' => 'Paid'
+        ]);
 
-        foreach ($statuses as $code => $label) {
-            /** @var Status $status */
-            $status = $this->statusFactory->create();
-            $status->setData([
-                'status' => $code,
-                'label' => $label
-            ]);
-
-            $this->statusResource->save($status);
-            $status->assignState('processing', false, true); // Change as needed
-        }
+        $this->statusResource->save($status);
+        $status->assignState('processing', false, true); // Assign to 'processing' state, not visible by default
 
         $this->moduleDataSetup->endSetup();
     }

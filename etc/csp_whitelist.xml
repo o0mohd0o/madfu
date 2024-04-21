@@ -3,6 +3,11 @@
     <policies>
         <policy id="script-src">
             <values>
+                <value id="jquery" type="host">https://ajax.googleapis.com</value>
+            </values>
+        </policy>
+        <policy id="script-src">
+            <values>
                 <value id="madfu" type="host">https://checkout-staging.madfu.com.sa</value>
             </values>
         </policy>

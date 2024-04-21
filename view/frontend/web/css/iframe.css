@@ -1,9 +1,30 @@
 #framePaymentPage{
     width: 100%;
-    height: 800px; /* Adjust as needed */
+    height: 1024px;
 }
 
-.modal-popup {
-    max-height: 90%;
-    height: 90%; /* Adjust as needed */
+.no-header-footer .modal-header,
+.no-header-footer .modal-footer {
+    display: none !important;  // Force hiding header and footer
 }
+
+.no-header-footer .modal-content {
+    padding: 0 !important;  // Remove padding inside the modal
+}
+
+
+.no-header-footer .modal-popup {
+    max-height: 100%;
+    height: 100%;
+}
+
+.no-header-footer .modal-slide .modal-inner-wrap, .no-header-footer.modal-popup .modal-inner-wrap {
+    background-color: unset;
+    box-shadow: none;
+}
+
+.no-header-footer iframe{
+    border: 0;
+}
+
+

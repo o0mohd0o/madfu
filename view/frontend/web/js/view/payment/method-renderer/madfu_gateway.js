@@ -8,7 +8,8 @@ define(
         'Magento_Checkout/js/action/redirect-on-success',
         'Magento_Checkout/js/model/payment/additional-validators',
         'Magento_Ui/js/modal/modal',
-        'Magento_Checkout/js/action/place-order' // Add this line
+        'Magento_Checkout/js/action/place-order',
+        'MadfuCheckout'
     ],
     function (
         Component,
@@ -150,9 +151,10 @@ define(
                 var options = {
                     type: 'popup',
                     responsive: true,
-                    innerScroll: true,
-                    title: 'Payment',
+                    innerScroll: false,
+                    title: '',
                     buttons: [],
+                    modalClass: 'no-header-footer',
                     opened: function () {
                         // Hide the loading mask when the modal is opened
                         $('.loading-mask').hide();
