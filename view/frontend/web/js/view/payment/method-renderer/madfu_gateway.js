@@ -78,11 +78,22 @@ define(
             },
 
             createOrder: function () {
-                // console.log(quote.billingAddress().telephone);
+                var customerData = window.customerData;
+
+                var billingAddress = quote.billingAddress();
+                var customerMobile = billingAddress.telephone;
+                var customerName = billingAddress.firstname + ' ' + billingAddress.lastname;
+
+                // Check if the user is logged in and use their data
+                if (customerData && customerData.isLoggedIn) {
+                    customerMobile = customerData.telephone || customerMobile;
+                    customerName = customerData.firstname + ' ' + customerData.lastname || customerName;
+                }
+
                 var orderData = {
                     "GuestOrderData": {
-                        "CustomerMobile": quote.billingAddress().telephone,
-                        "CustomerName": quote.billingAddress().firstname + ' ' + quote.billingAddress().lastname,
+                        "CustomerMobile": customerMobile,
+                        "CustomerName": customerName,
                         "Lang": "ar"
                     },
                     "Order": {
@@ -112,6 +123,7 @@ define(
                 });
             },
 
+
             initIframe: function (token) {
                 var self = this;
 
@@ -126,10 +138,10 @@ define(
                     token: token,
                     completeCallback: function (data) {
                         console.log('Payment Success');
-                        fullScreenLoader.stopLoader();
                         self.sendPaymentStatus('success');
                         // Close the modal and trigger order placement
                         $('#frameDiv').modal('closeModal');
+                        fullScreenLoader.startLoader();
                         placeOrderAction(self.getData(), self.redirectAfterPlaceOrder).done(function () {
                             redirectOnSuccessAction.execute();
                         }).fail(function () {
