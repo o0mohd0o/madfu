@@ -198,6 +198,7 @@ define(
                     return;
                 }
 
+                console.log('Device Type:', getDeviceType());
                 Checkout.Checkout.configure = {
                     token: token,
                     completeCallback: function (data) {
@@ -219,6 +220,7 @@ define(
                     errorCallback: function (data) {
                         self.sendPaymentStatus('failed');
                         console.error('Payment Failed');
+                        fullScreenLoader.stopLoader();
                         setTimeout(function() {
                             fullScreenLoader.stopLoader();
                             self.isPlaceOrderActionAllowed(true);
@@ -229,6 +231,7 @@ define(
                     cancelCallback: function () {
                         console.log('Payment Cancelled');
                         self.sendPaymentStatus('canceled');
+                        fullScreenLoader.startLoader();
                         setTimeout(function() {
                             fullScreenLoader.stopLoader();
                             self.isPlaceOrderActionAllowed(true);
