@@ -36,6 +36,12 @@
                     <label>API Password</label>
                     <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
                 </field>
+                <!-- Payment Method Title Configuration -->
+                <field id="title" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Payment Method Title</label>
+                    <frontend_model>Magento\Config\Block\System\Config\Form\Field</frontend_model>
+                    <comment>Enter the title for the Madfu Gateway payment method as it will appear on the customer checkout.</comment>
+                </field>
             </group>
         </section>
     </system>

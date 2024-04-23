@@ -98,7 +98,7 @@ define(
             },
 
             getTitle: function() {
-                return 'Madfu';
+                return window.checkoutConfig.payment.madfu_gateway.title;
             },
 
             placeOrder: function (data, event) {

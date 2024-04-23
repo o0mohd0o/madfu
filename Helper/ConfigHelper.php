@@ -11,6 +11,9 @@ class ConfigHelper extends AbstractHelper
         'production' => 'https://checkout.madfu.com.sa/MadfuCheckout.js?v=0.1',
     ];
 
+    // Define the XML path for the payment method title
+    const XML_PATH_PAYMENT_TITLE = 'payment/madfu_gateway/title';
+
     /**
      * Get the Checkout JS URL based on the environment setting from the scope config.
      *
@@ -24,5 +27,19 @@ class ConfigHelper extends AbstractHelper
         );
 
         return self::URLS[$environment] ?? self::URLS['staging']; // Default to staging if no environment is set
+    }
+
+    /**
+     * Get the payment method title from system configuration.
+     *
+     * @param string $paymentCode The payment code to get the title for
+     * @return string
+     */
+    public function getPaymentMethodTitle($paymentCode)
+    {
+        return $this->scopeConfig->getValue(
+            self::XML_PATH_PAYMENT_TITLE,
+            ScopeInterface::SCOPE_STORE
+        );
     }
 }
