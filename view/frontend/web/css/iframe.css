@@ -1,7 +1,23 @@
-#framePaymentPage{
-    width: 100%;
-    height: 1024px;
+/* Styles for desktop and larger devices */
+#framePaymentPage {
+    width: 600px;
+    height: 750px;
 }
+
+.no-header-footer.modal-popup .modal-inner-wrap {
+    margin-left: -300px !important;
+    width: 600px !important;
+}
+
+/* Media query for mobile devices */
+@media (max-width: 600px) {
+    #framePaymentPage {
+        width: 100%;
+        height: auto;
+    }
+}
+
+
 
 .no-header-footer .modal-header,
 .no-header-footer .modal-footer {
@@ -36,4 +52,6 @@
         background: transparent
     }
 }
+
+
 

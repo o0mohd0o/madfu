@@ -42,6 +42,18 @@ define(
             });
         }
 
+        function getDeviceType() {
+            var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            if (/android/i.test(userAgent)) {
+                return 'Android';
+            }
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                return 'iOS';
+            }
+            return '';
+        }
+
+
         return Component.extend({
             defaults: {
                 template: 'Madfu_MadfuPayment/payment/form',
@@ -155,10 +167,11 @@ define(
                         "MerchantReference": quote.getQuoteId() + '-mag' ,
                     },
                     "OrderDetails": quote.getItems().map(function (item) {
+                        console.log('Item:', item);
                         return {
                             "productName": item.name,
                             "SKU": item.sku,
-                            "productImage": item.image,
+                            "productImage": item.thumbnail,
                             "count": item.qty,
                             "totalAmount": item.row_total
                         };
@@ -191,28 +204,39 @@ define(
                         console.log('Payment Success');
                         self.sendPaymentStatus('success');
                         // Close the modal and trigger order placement
-                        $('#frameDiv').modal('closeModal');
-                        fullScreenLoader.startLoader();
-                        placeOrderAction(self.getData(), self.redirectAfterPlaceOrder).done(function () {
-                            redirectOnSuccessAction.execute();
-                        }).fail(function () {
-                            console.error('Order placement failed');
-                        });
+                        setTimeout(function() {
+                            $('#frameDiv').modal('closeModal');
+                            fullScreenLoader.startLoader();
+                            placeOrderAction(self.getData(), self.redirectAfterPlaceOrder).done(function () {
+                                redirectOnSuccessAction.execute();
+                            }).fail(function () {
+                                console.error('Order placement failed');
+                                fullScreenLoader.stopLoader();
+                                self.isPlaceOrderActionAllowed(true);
+                            });
+                        }, 3000);
                     },
                     errorCallback: function (data) {
+                        self.sendPaymentStatus('failed');
                         console.error('Payment Failed');
-                        fullScreenLoader.stopLoader();
-                        self.isPlaceOrderActionAllowed(true);
-                        $('#frameDiv').modal('closeModal');
-                        messageList.addErrorMessage({ message: 'Payment failed. Please try again.' });
+                        setTimeout(function() {
+                            fullScreenLoader.stopLoader();
+                            self.isPlaceOrderActionAllowed(true);
+                            $('#frameDiv').modal('closeModal');
+                            messageList.addErrorMessage({ message: 'Payment failed. Please try again.' });
+                        }, 3000);
                     },
                     cancelCallback: function () {
                         console.log('Payment Cancelled');
-                        fullScreenLoader.stopLoader();
-                        self.isPlaceOrderActionAllowed(true);
-                        $('#frameDiv').modal('closeModal');
-                        messageList.addErrorMessage({ message: 'Payment was cancelled.' });
+                        self.sendPaymentStatus('canceled');
+                        setTimeout(function() {
+                            fullScreenLoader.stopLoader();
+                            self.isPlaceOrderActionAllowed(true);
+                            $('#frameDiv').modal('closeModal');
+                            messageList.addErrorMessage({ message: 'Payment was cancelled.' });
+                        }, 3000);
                     },
+                    deviceType: getDeviceType()
                 };
 
 
