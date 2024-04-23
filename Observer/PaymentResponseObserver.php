@@ -39,32 +39,55 @@ class PaymentResponseObserver implements ObserverInterface
     public function execute(Observer $observer)
     {
         $paymentStatus = $this->checkoutSession->getData('paymentStatus');
-        $quoteId = $this->checkoutSession->getData('quoteId'); // Retrieve the quoteId from session
+        $quoteId = $this->checkoutSession->getData('quoteId');
 
-        if ($paymentStatus === 'success' && $quoteId) {
-            $this->checkoutSession->unsetData('paymentStatus'); // Clear the session after use
-            $this->checkoutSession->unsetData('quoteId');
+        $this->checkoutSession->unsetData('paymentStatus');
+        $this->checkoutSession->unsetData('quoteId');
 
-            $realQuoteId = $this->resolveQuoteId($quoteId);
+        if (!$quoteId) {
+            $this->logger->error('No quote ID provided.');
+            $this->messageManager->addErrorMessage(__('Error: No order information found.'));
+            return;
+        }
 
-            if ($realQuoteId) {
-                $criteria = $this->searchCriteriaBuilder->addFilter('quote_id', $realQuoteId, 'eq')->create();
-                $orders = $this->orderRepository->getList($criteria)->getItems();
+        $realQuoteId = $this->resolveQuoteId($quoteId);
+        if (!$realQuoteId) {
+            $this->logger->error('Failed to resolve quote ID for ID: ' . $quoteId);
+            $this->messageManager->addErrorMessage(__('Error: Failed to process payment information.'));
+            return;
+        }
 
-                if (count($orders) > 0) {
-                    $order = array_values($orders)[0];
-                    $order->setStatus('paid');
-                    $this->orderRepository->save($order);
-                    $this->messageManager->addSuccessMessage(__('Payment successful and order placed.'));
-                    $this->logger->info('Order status updated to Paid.');
-                } else {
-                    $this->logger->error('No order found with quote ID: ' . $realQuoteId);
-                }
-            } else {
-                $this->logger->error('No valid quote ID found for ID: ' . $quoteId);
-            }
+        switch ($paymentStatus) {
+            case 'success':
+                $this->updateOrderStatus($realQuoteId, 'paid');
+                $this->messageManager->addSuccessMessage(__('Payment successful and order placed.'));
+                break;
+            case 'failed':
+                $this->updateOrderStatus($realQuoteId, 'payment_failed');
+                $this->messageManager->addErrorMessage(__('Payment failed. Please try again or use another payment method.'));
+                break;
+            case 'canceled':
+                $this->updateOrderStatus($realQuoteId, 'payment_canceled');
+                $this->messageManager->addNoticeMessage(__('Payment was canceled.'));
+                break;
+            default:
+                $this->messageManager->addErrorMessage(__('Error: Unrecognized payment status.'));
+                break;
+        }
+    }
+
+    private function updateOrderStatus($quoteId, $status)
+    {
+        $criteria = $this->searchCriteriaBuilder->addFilter('quote_id', $quoteId, 'eq')->create();
+        $orders = $this->orderRepository->getList($criteria)->getItems();
+        if (count($orders) > 0) {
+            $order = array_values($orders)[0];
+            $order->setStatus($status);
+            $this->orderRepository->save($order);
+            $this->logger->info('Order status updated to ' . $status . ' for quote ID: ' . $quoteId);
         } else {
-            $this->logger->info('No successful payment status found in session or missing quote ID.');
+            $this->logger->error('No order found with quote ID: ' . $quoteId);
+            $this->messageManager->addErrorMessage(__('Error: Order placement failed.'));
         }
     }
 
@@ -75,7 +98,7 @@ class PaymentResponseObserver implements ObserverInterface
             return $quoteIdMask->getQuoteId() ?? $quoteId;
         } catch (\Exception $e) {
             $this->logger->error('Failed to resolve quote ID: ' . $e->getMessage());
-            return $quoteId; // Fallback to using the given ID if the masked lookup fails
+            return null;
         }
     }
 }

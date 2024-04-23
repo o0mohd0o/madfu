@@ -7,6 +7,8 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteIdMaskFactory;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 class HandlePaymentResult extends Action
 {
@@ -14,6 +16,7 @@ class HandlePaymentResult extends Action
     protected $checkoutSession;
     protected $cartRepository;
     protected $quoteIdMaskFactory;
+    protected $logger;
 
     public function __construct(
         Context $context,
@@ -27,6 +30,8 @@ class HandlePaymentResult extends Action
         $this->checkoutSession = $checkoutSession;
         $this->cartRepository = $cartRepository;
         $this->quoteIdMaskFactory = $quoteIdMaskFactory;
+        $this->logger = new Logger('customLogger');
+        $this->logger->pushHandler(new StreamHandler(BP . '/var/log/madfu-payment.log', Logger::DEBUG));
     }
 
     public function execute()
@@ -43,27 +48,23 @@ class HandlePaymentResult extends Action
             return $result->setData(['success' => false, 'message' => 'Missing required data fields']);
         }
 
-        $maskedQuoteId = $data['paymentData']['quoteId'];
         $status = $data['status'];
+        $maskedQuoteId = $data['paymentData']['quoteId'];
 
         try {
             if ($this->getSessionCustomerId()) {
-                // For logged-in users, use the real quote ID directly
                 $quoteId = $maskedQuoteId;
             } else {
-                // For guest users, convert masked ID to real quote ID
                 $quoteIdMask = $this->quoteIdMaskFactory->create()->load($maskedQuoteId, 'masked_id');
                 $quoteId = $quoteIdMask->getQuoteId();
             }
+            $this->checkoutSession->setData('quoteId', $quoteId);
+            $this->checkoutSession->setData('paymentStatus', $status);
+
+            return $result->setData(['success' => true, 'message' => "Payment status '$status' for Quote ID '$quoteId' saved in session"]);
         } catch (\Exception $e) {
-            return $result->setData(['success' => false, 'message' => 'Failed to retrieve quote ID']);
+            return $result->setData(['success' => false, 'message' => 'Failed to process payment information. Error: ' . $e->getMessage()]);
         }
-
-        // Save quoteId and payment status in the session
-        $this->checkoutSession->setData('quoteId', $quoteId);
-        $this->checkoutSession->setData('paymentStatus', $status);
-
-        return $result->setData(['success' => true, 'message' => "Payment status '$status' for Quote ID '$quoteId' saved in session"]);
     }
 
     private function getSessionCustomerId() {

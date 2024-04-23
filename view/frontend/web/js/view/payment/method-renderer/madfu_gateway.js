@@ -105,25 +105,63 @@ define(
                 var self = this;
 
                 if (event) {
-                    event.preventDefault();
+                    event.preventDefault();  // Prevent the default form submission event
                 }
 
                 if (this.validate() && additionalValidators.validate()) {
-                    this.isPlaceOrderActionAllowed(false);
-                    fullScreenLoader.startLoader();
+                    this.isPlaceOrderActionAllowed(false);  // Disable the place order button to prevent multiple submissions
+                    fullScreenLoader.startLoader();  // Show a loading screen as the process begins
 
-                    this.createOrder().then(function (response) {
-                        self.initIframe(response.data.token);
-                    }).catch(function () {
+                    // Place the order first
+                    placeOrderAction(this.getData(), false).done(function (orderPlacementResponse) {
+                        var quoteId = quote.getQuoteId();  // Get the current quote ID
+                        // Fetch the order ID from the controller
+                        self.fetchOrderId(quoteId).done(function (response) {
+                            var orderId = response.order_id; // Make sure the response has 'order_id'
+                            if (orderId) {
+                                self.createOrder(orderId).then(function (paymentResponse) {
+                                    // Initiate the payment process with the token received from the server
+                                    self.initIframe(paymentResponse.data.token);
+                                }).catch(function (error) {
+                                    console.error('Failed to initiate payment:', error);
+                                    self.isPlaceOrderActionAllowed(true);
+                                    fullScreenLoader.stopLoader();
+                                    messageList.addErrorMessage({ message: 'Error initializing payment. Please try again.' });
+                                });
+                            } else {
+                                console.error('Failed to fetch order ID:', response);
+                                fullScreenLoader.stopLoader();
+                                messageList.addErrorMessage({ message: 'Failed to fetch order ID. Please try again.' });
+                            }
+                        }).fail(function (error) {
+                            console.error('Failed to fetch order ID:', error);
+                            self.isPlaceOrderActionAllowed(true);
+                            fullScreenLoader.stopLoader();
+                            messageList.addErrorMessage({ message: 'Failed to fetch order ID. Please try again.' });
+                        });
+                    }).fail(function (error) {
+                        console.error('Order placement failed:', error);
                         self.isPlaceOrderActionAllowed(true);
                         fullScreenLoader.stopLoader();
+                        messageList.addErrorMessage({ message: 'Order placement failed. Please try again.' });
                     });
                 }
 
-                return false;
+                return false;  // Prevent the default form submission
             },
 
-            createOrder: function () {
+
+            fetchOrderId: function() {
+                var quoteId = quote.getQuoteId();  // Assuming you have access to quote object
+                var url = urlBuilder.build('madfu_payment/order/getOrderId') + '?quote_id=' + quoteId;
+                return $.ajax({
+                    url: url,
+                    type: 'GET',
+                    contentType: 'application/json'
+                });
+            },
+
+            createOrder: function (orderId) {
                 var customerData = window.customerData;
                 var billingAddress = quote.billingAddress();
                 var customerMobile = billingAddress.telephone;
@@ -164,7 +202,7 @@ define(
                         "Taxes": quote.totals().tax_amount,
                         "ActualValue": quote.totals().grand_total,
                         "Amount": quote.totals().grand_total,
-                        "MerchantReference": quote.getQuoteId() + '-mag' ,
+                        "MerchantReference": orderId,
                     },
                     "OrderDetails": quote.getItems().map(function (item) {
                         console.log('Item:', item);
@@ -204,39 +242,31 @@ define(
                     completeCallback: function (data) {
                         console.log('Payment Success');
                         self.sendPaymentStatus('success');
-                        // Close the modal and trigger order placement
+                        // Close the modal and directly proceed to the success page after a short delay
                         setTimeout(function() {
-                            $('#frameDiv').modal('closeModal');
                             fullScreenLoader.startLoader();
-                            placeOrderAction(self.getData(), self.redirectAfterPlaceOrder).done(function () {
-                                redirectOnSuccessAction.execute();
-                            }).fail(function () {
-                                console.error('Order placement failed');
-                                fullScreenLoader.stopLoader();
-                                self.isPlaceOrderActionAllowed(true);
-                            });
+                            $('#frameDiv').modal('closeModal');
+                            redirectOnSuccessAction.execute();  // Redirect to the success page directly
                         }, 3000);
                     },
                     errorCallback: function (data) {
-                        self.sendPaymentStatus('failed');
                         console.error('Payment Failed');
-                        fullScreenLoader.stopLoader();
+                        self.sendPaymentStatus('failed');
+                        // Close the modal and directly proceed to the success page after a short delay
                         setTimeout(function() {
-                            fullScreenLoader.stopLoader();
-                            self.isPlaceOrderActionAllowed(true);
+                            fullScreenLoader.startLoader();
                             $('#frameDiv').modal('closeModal');
-                            messageList.addErrorMessage({ message: 'Payment failed. Please try again.' });
+                            redirectOnSuccessAction.execute();
                         }, 3000);
                     },
                     cancelCallback: function () {
                         console.log('Payment Cancelled');
                         self.sendPaymentStatus('canceled');
-                        fullScreenLoader.startLoader();
+                        // Close the modal and directly proceed to the success page after a short delay
                         setTimeout(function() {
-                            fullScreenLoader.stopLoader();
-                            self.isPlaceOrderActionAllowed(true);
+                            fullScreenLoader.startLoader();
                             $('#frameDiv').modal('closeModal');
-                            messageList.addErrorMessage({ message: 'Payment was cancelled.' });
+                            redirectOnSuccessAction.execute();
                         }, 3000);
                     },
                     deviceType: getDeviceType()
@@ -316,7 +346,6 @@ define(
                     }
                 });
             },
-
         });
     }
 );
