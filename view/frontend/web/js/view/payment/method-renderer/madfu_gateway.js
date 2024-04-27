@@ -108,6 +108,19 @@ define(
                     event.preventDefault();  // Prevent the default form submission event
                 }
 
+                // Retrieve the customer mobile number from billing address
+                var billingAddress = quote.billingAddress();
+                var customerMobile = billingAddress.telephone;
+
+                // Validate the mobile number first
+                if (!this.isValidSaudiNumber(customerMobile)) {
+                    fullScreenLoader.stopLoader();
+                    messageList.addErrorMessage({
+                        message: 'Please enter a valid Saudi mobile number starting with 05 followed by 8 digits.'
+                    });
+                    return false; // Halt execution if the mobile number is invalid
+                }
+
                 if (this.validate() && additionalValidators.validate()) {
                     this.isPlaceOrderActionAllowed(false);  // Disable the place order button to prevent multiple submissions
                     fullScreenLoader.startLoader();  // Show a loading screen as the process begins
@@ -161,6 +174,16 @@ define(
                 });
             },
 
+            isValidSaudiNumber: function (customerMobile) {
+                var saudiMobileRegex = /^0(5\d{8})$/;
+                var match = customerMobile.match(saudiMobileRegex);
+                if (match) {
+                    // Return the valid mobile number without the leading '0'
+                    return match[1];
+                }
+                return false; // Return false if the number is invalid
+            },
+
             createOrder: function (orderId) {
                 var customerData = window.customerData;
                 var billingAddress = quote.billingAddress();
@@ -179,17 +202,9 @@ define(
                     customerName = customerData.firstname + ' ' + customerData.lastname || customerName;
                 }
 
-                // Validate Saudi mobile number
-                var saudiMobileRegex = /^0(5\d{8})$/;
-                var match = customerMobile.match(saudiMobileRegex);
-                if (match) {
-                    customerMobile = match[1]; // Remove the leading '0' if it's a valid Saudi number
-                } else {
-                    fullScreenLoader.stopLoader();
-                    messageList.addErrorMessage({
-                        message: 'Please enter a valid Saudi mobile number starting with 05 followed by 8 digits.'
-                    });
-                    return; // Stop execution if the phone number is invalid
+                // Format the Saudi mobile number by removing the leading '0'
+                if (customerMobile.startsWith('0')) {
+                    customerMobile = customerMobile.substring(1);
                 }
 
                 var orderData = {
@@ -225,6 +240,7 @@ define(
                     }
                 });
             },
+
 
             initIframe: function (token) {
                 var self = this;
