@@ -252,11 +252,10 @@ define(
                     return;
                 }
 
-                console.log('Device Type:', getDeviceType());
+
                 Checkout.Checkout.configure = {
                     token: token,
                     completeCallback: function (data) {
-                        console.log('Payment Success');
                         self.sendPaymentStatus('success');
                         // Close the modal and directly proceed to the success page after a short delay
                         setTimeout(function() {
@@ -276,7 +275,6 @@ define(
                         }, 3000);
                     },
                     cancelCallback: function () {
-                        console.log('Payment Cancelled');
                         self.sendPaymentStatus('canceled');
                         // Close the modal and directly proceed to the success page after a short delay
                         setTimeout(function() {
@@ -308,9 +306,6 @@ define(
                         $('.loading-mask').hide();
                     },
                     closed: function () {
-                        // Actions that should always take place when the modal is closed, regardless of payment outcome
-                        console.log('Modal has been closed.');
-                        fullScreenLoader.stopLoader();
                     }
 
                 };
@@ -342,9 +337,6 @@ define(
 
                 var endpoint = urlBuilder.build('madfu_payment/payment/handlePaymentResult');
 
-                console.log('Sending payment status to:', endpoint);
-                console.log('Payload:', payload);
-
                 return $.ajax({
                     url: endpoint,
                     type: 'POST',
@@ -352,9 +344,9 @@ define(
                     data: JSON.stringify(payload),
                     success: function (data) {
                         if (data.success) {
-                            console.log('Server response:', data.message);
+                            // console.log('Server response:', data.message);
                         } else {
-                            console.error('Server error:', data.message);
+                            // console.error('Server error:', data.message);
                         }
                     },
                     error: function (xhr, status, error) {

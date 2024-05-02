@@ -73,15 +73,12 @@ class GetOrderId extends Action
 
     protected function getOrderByQuoteId($quoteId)
     {
-        $this->logger->info("Searching for order with quote ID: " . $quoteId);
-
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter('quote_id', $quoteId)
             ->setPageSize(1)
             ->create();
 
         $orderList = $this->orderRepository->getList($searchCriteria);
-        $this->logger->info("Found " . $orderList->getTotalCount() . " orders for quote ID: " . $quoteId);
 
         if ($orderList->getTotalCount() > 0) {
             return current($orderList->getItems());

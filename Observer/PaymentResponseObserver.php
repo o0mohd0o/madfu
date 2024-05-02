@@ -84,7 +84,6 @@ class PaymentResponseObserver implements ObserverInterface
             $order = array_values($orders)[0];
             $order->setStatus($status);
             $this->orderRepository->save($order);
-            $this->logger->info('Order status updated to ' . $status . ' for quote ID: ' . $quoteId);
         } else {
             $this->logger->error('No order found with quote ID: ' . $quoteId);
             $this->messageManager->addErrorMessage(__('Error: Order placement failed.'));

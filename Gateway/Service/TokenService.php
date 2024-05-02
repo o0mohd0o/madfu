@@ -51,11 +51,6 @@ class TokenService
             'Content-Type' => 'application/json',
         ];
 
-        // Log the request
-        $this->logger->info('Request to https://api.staging.madfu.com.sa/merchants/token/init');
-        $this->logger->info('Body: ' . json_encode($body));
-        $this->logger->info('Headers: ' . json_encode($headers));
-
         $response = $this->client->request('POST', 'https://api.staging.madfu.com.sa/merchants/token/init', [
             'body' => json_encode($body),
             'headers' => $headers,

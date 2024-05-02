@@ -65,17 +65,12 @@ class SignInService
                 'content-type' => 'application/json',
             ];
 
-            $this->logger->info('Sending request to https://api.staging.madfu.com.sa/Merchants/sign-in');
-            $this->logger->info('Request Body: ' . json_encode($body));
-            $this->logger->info('Headers: ' . json_encode($headers));
-
             $response = $this->client->request('POST', 'https://api.staging.madfu.com.sa/Merchants/sign-in', [
                 'json' => $body,
                 'headers' => $headers,
             ]);
 
             $responseData = json_decode($response->getBody()->getContents(), true);
-            $this->logger->info('Response Data: ' . json_encode($responseData));
 
             return ['success' => true, 'data' => $responseData];
         } catch (\Exception $e) {

@@ -80,17 +80,12 @@ class CreateOrder extends \Magento\Framework\App\Action\Action
                 'content-type' => 'application/json',
             ];
 
-            $this->logger->info('Sending request to https://api.staging.madfu.com.sa/Merchants/Checkout/CreateOrder');
-            $this->logger->info('Request Body: ' . $requestBody);
-            $this->logger->info('Headers: ' . json_encode($headers));
-
             $response = $this->client->request('POST', 'https://api.staging.madfu.com.sa/Merchants/Checkout/CreateOrder', [
                 'json' => $orderData,
                 'headers' => $headers,
             ]);
 
             $responseData = json_decode($response->getBody()->getContents(), true);
-            $this->logger->info('Response Data: ' . json_encode($responseData));
 
             $result->setData(['success' => true, 'data' => $responseData]);
         } catch (\Exception $e) {
