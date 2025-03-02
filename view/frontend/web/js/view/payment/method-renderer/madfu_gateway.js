@@ -207,10 +207,25 @@ define(
                     customerMobile = customerMobile.substring(1);
                 }
 
+                // Get shipping address information
+                var shippingAddress = '';
+                if (quote.shippingAddress()) {
+                    var address = quote.shippingAddress();
+                    // Format the address as a string including street, city, region, postcode, and country
+                    var streetLines = address.street || [];
+                    var addressParts = [].concat(
+                        streetLines,
+                        [address.city, address.region, address.postcode, address.countryId]
+                    ).filter(Boolean); // Remove any empty values
+                    
+                    shippingAddress = addressParts.join(', ');
+                }
+
                 var orderData = {
                     "GuestOrderData": {
                         "CustomerMobile": customerMobile,
                         "CustomerName": customerName,
+                        "ShippingAddress": shippingAddress,
                         "Lang": lang
                     },
                     "Order": {
