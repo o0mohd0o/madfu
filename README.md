@@ -2,6 +2,34 @@
 
 This module integrates the Madfu payment gateway with Magento 2, allowing customers to make payments using Madfu's payment services.
 
+## Installation
+
+### Manual Installation
+1. Create the following directory structure in your Magento installation: `app/code/Madfu/MadfuPayment`
+2. Copy all module files to the directory you created, maintaining the folder structure
+3. Ensure proper file permissions (typically 644 for files and 755 for directories)
+4. Enable the module by running the following commands from your Magento root directory:
+   ```bash
+   php bin/magento module:enable Madfu_MadfuPayment
+   php bin/magento setup:upgrade
+   php bin/magento setup:di:compile
+   php bin/magento setup:static-content:deploy -f
+   php bin/magento cache:clean
+   php bin/magento cache:flush
+   ```
+5. Verify the module is installed correctly by checking if it appears in the list of enabled modules:
+   ```bash
+   php bin/magento module:status Madfu_MadfuPayment
+   ```
+
+### Post-Installation
+After installing the module, you need to configure it in the Magento admin panel:
+1. Log in to your Magento admin panel
+2. Navigate to Stores > Configuration > Sales > Payment Methods
+3. Find and expand the 'Madfu Payment Gateway' section
+4. Enter your API credentials and configure the payment method settings
+5. Save the configuration
+
 ## Test Credentials
 
 ### Test Credit Card
